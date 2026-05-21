@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Home, Users, Calendar, Activity, Trophy } from 'lucide-react';
+import { Home, Users, Calendar, Activity, Trophy, Menu, X } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import TeamsView from './components/TeamsView';
 import ScheduleView from './components/ScheduleView';
@@ -10,6 +10,7 @@ import { useTournament } from './store/TournamentContext';
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedMatch, setSelectedMatch] = useState(null); // For LiveScore
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const navigateTo = (tab, matchId = null) => {
     setActiveTab(tab);
@@ -36,6 +37,15 @@ function App() {
           </div>
           <h1 className="text-xl font-bold text-gradient m-0">SPL Manager</h1>
         </div>
+        <div className="flex items-center gap-2">
+          <button
+            className="hamburger-btn p-2 rounded-md hover:bg-white/5"
+            onClick={() => setIsDrawerOpen(true)}
+            aria-label="Open menu"
+          >
+            <Menu size={20} />
+          </button>
+        </div>
       </header>
 
       {/* Main Content Area */}
@@ -47,29 +57,39 @@ function App() {
         {activeTab === 'table' && <PointsTable />}
       </main>
 
-      {/* Mobile Bottom Navigation */}
-      <nav className="glass-nav-bottom fixed bottom-0 left-0 right-0 w-full flex justify-around p-2 z-50 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
-        {navItems.map(item => (
-          <button
-            key={item.id}
-            onClick={() => navigateTo(item.id)}
-            className={`flex flex-col items-center justify-center p-3 rounded-xl transition-all duration-300 w-16 h-16 ${
-              activeTab === item.id 
-                ? 'text-white bg-blue-500/20 shadow-[inset_0_0_20px_rgba(59,130,246,0.2)]' 
-                : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
-            }`}
-            style={{ border: 'none', background: activeTab === item.id ? '' : 'transparent' }}
-          >
-            {React.cloneElement(item.icon, { 
-              size: activeTab === item.id ? 24 : 20,
-              className: `transition-all duration-300 ${activeTab === item.id ? 'text-blue-400 drop-shadow-[0_0_8px_rgba(59,130,246,0.8)]' : ''}`
+      {/* Hamburger Drawer Navigation */}
+      <div className={`drawer-overlay ${isDrawerOpen ? 'open' : ''}`} onClick={() => setIsDrawerOpen(false)} />
+      <aside className={`drawer-panel ${isDrawerOpen ? 'open' : ''}`} aria-hidden={!isDrawerOpen}>
+        <div className="drawer-header flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center font-bold text-white">S</div>
+            <strong>SPL Menu</strong>
+          </div>
+          <button className="p-2 rounded-md hover:bg-slate-800" onClick={() => setIsDrawerOpen(false)} aria-label="Close menu"><X size={18} /></button>
+        </div>
+        <nav className="drawer-body px-4 py-2">
+          <ul className="drawer-list">
+            {navItems.map(item => {
+              const isActive = activeTab === item.id;
+              return (
+                <li key={item.id} className="drawer-list-item">
+                  <button onClick={() => { navigateTo(item.id); setIsDrawerOpen(false); }} className={`drawer-item ${isActive ? 'active' : ''}`}>
+                    <span className="drawer-icon">{React.cloneElement(item.icon, { size: 20 })}</span>
+                    <div className="flex-1 text-left">
+                      <div className="font-semibold">{item.label}</div>
+                      <div className="text-xs text-slate-300/60">Manage {item.label.toLowerCase()}</div>
+                    </div>
+                    {isActive && <span className="text-xs text-blue-300">Active</span>}
+                  </button>
+                </li>
+              );
             })}
-            <span className={`text-[10px] mt-1 font-bold transition-all duration-300 ${activeTab === item.id ? 'text-blue-200' : ''}`}>
-              {item.label}
-            </span>
-          </button>
-        ))}
-      </nav>
+          </ul>
+          <div className="mt-4 px-2">
+            <button className="w-full btn-ghost" onClick={() => { navigateTo('livescore'); setIsDrawerOpen(false); }}>Open Live Score</button>
+          </div>
+        </nav>
+      </aside>
 
       {/* Desktop Sidebar (Optional, we'll keep it simple and just use top nav + bottom nav on mobile) */}
     </div>
