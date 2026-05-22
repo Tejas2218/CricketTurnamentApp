@@ -59,10 +59,12 @@ const LiveScoreView = ({ matchId, onNavigate }) => {
     const s = String(label);
     if (!s) return { runs: 0, wickets: 0, isExtra: false, ballCount: 0 };
     if (s.includes('Wd') || s.toLowerCase().includes('wd')) {
-      return { runs: 1, wickets: 0, isExtra: true, ballCount: 0 };
+      // According to street rules: wide gives 1 run and counts as a legal delivery
+      return { runs: 1, wickets: 0, isExtra: true, ballCount: 1 };
     }
     if (s.includes('Nb') || s.toLowerCase().includes('nb')) {
-      return { runs: 1, wickets: 0, isExtra: true, ballCount: 0 };
+      // No-ball treated as one run and counts as a delivery; no free-hit/penalty
+      return { runs: 1, wickets: 0, isExtra: true, ballCount: 1 };
     }
     if (s.startsWith('W') || s.startsWith('w')) {
       // W or W+2
@@ -146,8 +148,10 @@ const LiveScoreView = ({ matchId, onNavigate }) => {
 
     let r = runs;
     let w = isWicket ? 1 : 0;
-    let b = isExtra ? 0 : 1;
-    let runsToAdd = isExtra ? (extraType === 'wide' || extraType === 'nb' ? 1 + runs : runs) : runs;
+    // Street rules: wides and no-balls give 1 run and do NOT give an extra (i.e., ball still counts)
+    let b = 1; // every event consumes a delivery in this variant
+    let runsToAdd = runs;
+    if (isExtra && (extraType === 'wide' || extraType === 'nb')) runsToAdd = 1 + runs;
 
     const newScore = {
       ...currentScore,
@@ -167,8 +171,8 @@ const LiveScoreView = ({ matchId, onNavigate }) => {
     let currentOverIdx = newHistory.length - 1;
     newHistory[currentOverIdx] = [...newHistory[currentOverIdx], historyLabel];
 
-    // If ball was legal and it's the 6th ball, start a new over array (if match isn't over)
-    if (!isExtra && newScore.balls % 6 === 0 && newScore.balls < settings.oversPerMatch * 6) {
+    // Start a new over when balls modulo 6 == 0 (we treat wides/no-balls as consuming a ball)
+    if (newScore.balls % 6 === 0 && newScore.balls < settings.oversPerMatch * 6) {
       newHistory.push([]); // Prepare next over
     }
 
@@ -204,9 +208,11 @@ const LiveScoreView = ({ matchId, onNavigate }) => {
       if (lastLabel.includes('Wd')) {
         sc.extras = Math.max(0, sc.extras - 1);
         sc.runs = Math.max(0, sc.runs - 1);
+        sc.balls = Math.max(0, sc.balls - 1);
       } else if (lastLabel.includes('Nb')) {
         sc.extras = Math.max(0, sc.extras - 1);
         sc.runs = Math.max(0, sc.runs - 1);
+        sc.balls = Math.max(0, sc.balls - 1);
       } else if (lastLabel.includes('W+')) {
         const parts = lastLabel.split('+');
         const extraRuns = parseInt(parts[1] || '0', 10) || 0;

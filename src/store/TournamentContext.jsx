@@ -12,8 +12,8 @@ const defaultTeams = [
 ];
 
 const defaultSettings = {
-  oversPerMatch: 7,
-  playersPerTeam: 7,
+  oversPerMatch: 6,
+  playersPerTeam: 6,
   winPoints: 2,
   tiePoints: 1,
   lossPoints: 0
@@ -40,6 +40,22 @@ export const TournamentProvider = ({ children }) => {
     return saved ? JSON.parse(saved) : defaultSettings;
   });
 
+  // If the user has older saved settings (e.g. playersPerTeam was 7), migrate to new defaults
+  useEffect(() => {
+    const savedRaw = localStorage.getItem('spl_settings');
+    if (savedRaw) {
+      try {
+        const parsed = JSON.parse(savedRaw);
+        if (parsed.playersPerTeam !== defaultSettings.playersPerTeam || parsed.oversPerMatch !== defaultSettings.oversPerMatch) {
+          setSettings(defaultSettings);
+          localStorage.setItem('spl_settings', JSON.stringify(defaultSettings));
+        }
+      } catch (e) {
+        // ignore parse errors and leave defaults
+      }
+    }
+  }, []);
+
   const [schedule, setSchedule] = useState(() => {
     const saved = localStorage.getItem('spl_schedule');
     return saved ? JSON.parse(saved) : defaultSchedule;
@@ -62,11 +78,16 @@ export const TournamentProvider = ({ children }) => {
     setTeams(teams.map(t => t.id === teamId ? { ...t, ...updatedData } : t));
   };
 
-  const addPlayer = (teamId, playerName) => {
+  const addPlayer = (teamId, playerName, isCaptain = false) => {
     setTeams(teams.map(t => {
       if (t.id === teamId) {
         if (t.players.length >= settings.playersPerTeam) return t;
-        return { ...t, players: [...t.players, { id: Date.now(), name: playerName }] };
+        const newPlayer = { id: Date.now(), name: playerName };
+        const updated = { ...t, players: [...t.players, newPlayer] };
+        if (isCaptain) {
+          updated.captain = newPlayer.id;
+        }
+        return updated;
       }
       return t;
     }));
@@ -75,7 +96,19 @@ export const TournamentProvider = ({ children }) => {
   const removePlayer = (teamId, playerId) => {
     setTeams(teams.map(t => {
       if (t.id === teamId) {
-        return { ...t, players: t.players.filter(p => p.id !== playerId) };
+        const filtered = t.players.filter(p => p.id !== playerId);
+        const updated = { ...t, players: filtered };
+        if (t.captain === playerId) updated.captain = '';
+        return updated;
+      }
+      return t;
+    }));
+  };
+
+  const setCaptain = (teamId, playerId) => {
+    setTeams(teams.map(t => {
+      if (t.id === teamId) {
+        return { ...t, captain: playerId };
       }
       return t;
     }));
@@ -178,7 +211,7 @@ export const TournamentProvider = ({ children }) => {
   return (
     <TournamentContext.Provider value={{
       teams, settings, schedule,
-      updateTeam, addPlayer, removePlayer, updatePlayer, updateMatchResult, resetMatch, calculateStandings
+      updateTeam, addPlayer, removePlayer, updatePlayer, setCaptain, updateMatchResult, resetMatch, calculateStandings
     }}>
       {children}
     </TournamentContext.Provider>

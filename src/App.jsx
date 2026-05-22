@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Home, Users, Calendar, Activity, Trophy, Menu, X } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import TeamsView from './components/TeamsView';
@@ -11,6 +11,21 @@ function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedMatch, setSelectedMatch] = useState(null); // For LiveScore
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    // Prevent background scrolling when drawer is open
+    if (isDrawerOpen) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.touchAction = 'none';
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
+    };
+  }, [isDrawerOpen]);
 
   const navigateTo = (tab, matchId = null) => {
     setActiveTab(tab);
